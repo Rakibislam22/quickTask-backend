@@ -47,6 +47,42 @@ export const getTasks = async (req: AuthRequest, res: Response): Promise<void> =
   }
 };
 
+// Update Task Status (For Kanban Board)
+export const updateTaskStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const taskId = req.params.taskId as string;
+    const userId = req.user?.userId as string;
+    const { status } = req.body;
+
+    // Status validation (optional but good practice)
+    const validStatuses = ['To Do', 'In Progress', 'Done'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ message: 'Invalid status provided' });
+      return;
+    }
+
+    // Check if task exists and belongs to the user
+    const task = await prisma.task.findFirst({
+      where: { id: taskId, userId }
+    });
+
+    if (!task) {
+      res.status(404).json({ message: 'Task not found or unauthorized' });
+      return;
+    }
+
+    // Update the task in database
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: { status }
+    });
+
+    res.status(200).json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update task status', error });
+  }
+};
+
 // Delete Task
 export const deleteTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
